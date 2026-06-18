@@ -1,5 +1,6 @@
 import { structured } from "../ai/client.js";
 import { MISSION, MEMORY_TYPES } from "../ai/prompts.js";
+import { stripDashes } from "./voice-engine.js";
 import { formatContext } from "./format.js";
 import type { ContactContext, ExtractedMemory, MemoryType } from "../types.js";
 
@@ -76,6 +77,7 @@ export async function extractMemories(
     .filter((m) => m.content?.trim() && MEMORY_TYPE_VALUES.includes(m.type))
     .map((m) => ({
       ...m,
+      content: stripDashes(m.content),
       confidence: Math.max(0, Math.min(1, m.confidence ?? 0.7)),
     }));
 }

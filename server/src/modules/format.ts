@@ -40,7 +40,7 @@ export function formatContext(ctx: ContactContext): string {
 
   if (!ctx.notes.length && !ctx.conversations.length && !fields.length) {
     lines.push("");
-    lines.push("(No history yet — this is a new or thin relationship.)");
+    lines.push("(No history yet. This is a new or thin relationship.)");
   }
 
   return lines.join("\n");

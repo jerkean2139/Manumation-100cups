@@ -3,13 +3,36 @@ import type { Snapshot } from "../lib/types";
 import { stageLabel } from "../lib/utils";
 import { Card, Badge, ScoreMeter } from "./ui";
 
-const SCORE_FIELDS: { key: keyof Snapshot["scores"]; label: string }[] = [
-  { key: "relationshipHealth", label: "Relationship Health" },
-  { key: "trust", label: "Trust" },
-  { key: "humanity", label: "Humanity" },
-  { key: "hundredCups", label: "100 Cups" },
-  { key: "engagement", label: "Engagement" },
+const SCORE_FIELDS: { key: keyof Snapshot["scores"]; label: string; help: string }[] = [
+  {
+    key: "relationshipHealth",
+    label: "Relationship Health",
+    help: "Overall health of the relationship, 0 to 100. The engine estimates it from your history together, blending trust, engagement, and the balance of giving vs asking.",
+  },
+  {
+    key: "trust",
+    label: "Trust",
+    help: "How much trust has been built, both ways, 0 to 100. Higher means more candor, reliability, and follow-through in the relationship.",
+  },
+  {
+    key: "humanity",
+    label: "Humanity",
+    help: "How human vs transactional the relationship feels, 0 to 100. Higher means real connection, not just business.",
+  },
+  {
+    key: "hundredCups",
+    label: "100 Cups",
+    help: "Relationship deposits minus withdrawals, 0 to 100. 50 is neutral. Higher means you have been giving more than asking: helping, remembering, encouraging, celebrating.",
+  },
+  {
+    key: "engagement",
+    label: "Engagement",
+    help: "How actively this person is engaging right now, 0 to 100, based on recent replies and responsiveness.",
+  },
 ];
+
+const NBC_HELP =
+  "How ripe the moment is for a meaningful conversation right now, 0 to 100. Higher means there is a clear, timely thing worth reaching out about.";
 
 function Tile({
   icon: Icon,
@@ -70,9 +93,10 @@ export function SnapshotSidebar({ snapshot: s }: { snapshot: Snapshot }) {
             label="Next Best Conversation"
             value={s.scores.nextBestConversation}
             hero
+            help={NBC_HELP}
           />
           {SCORE_FIELDS.map((f) => (
-            <ScoreMeter key={f.key} label={f.label} value={s.scores[f.key]} />
+            <ScoreMeter key={f.key} label={f.label} value={s.scores[f.key]} help={f.help} />
           ))}
         </div>
       </Card>

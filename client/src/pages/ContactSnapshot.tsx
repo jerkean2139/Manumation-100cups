@@ -138,7 +138,7 @@ export default function ContactSnapshot() {
                 <ul className="space-y-2">
                   {memories.map((m, i) => (
                     <li key={i} className="text-sm text-ink">
-                      <span className="text-clay">{m.type}</span> — {m.content}
+                      <span className="text-clay">{m.type}</span>: {m.content}
                     </li>
                   ))}
                 </ul>

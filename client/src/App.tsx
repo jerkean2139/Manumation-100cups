@@ -45,7 +45,7 @@ function Sidebar({ onLogout, showLogout }: { onLogout: () => void; showLogout: b
       </nav>
       <div className="mt-auto pt-8">
         <p className="text-xs leading-relaxed text-muted">
-          It helps you remember people — so your conversations feel remembered, not
+          It helps you remember people, so your conversations feel remembered, not
           marketed to.
         </p>
         {showLogout && (
@@ -102,7 +102,8 @@ export default function App() {
           setState("needsLogin");
         }}
       />
-      <main className="flex-1 overflow-y-auto">
+      {/* Bottom padding on mobile so content clears the bottom tab bar. */}
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
         <Routes>
           <Route path="/" element={<Pending />} />
           <Route path="/compose" element={<InboxAssistant />} />
@@ -112,6 +113,31 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
+      <MobileNav />
     </div>
+  );
+}
+
+/** Bottom tab bar for phones / installed PWA, where the side rail is hidden. */
+function MobileNav() {
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-sand bg-paper/95 backdrop-blur md:hidden">
+      {NAV.map(({ to, label, icon: Icon, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) =>
+            cn(
+              "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium",
+              isActive ? "text-ink" : "text-muted",
+            )
+          }
+        >
+          <Icon className="h-5 w-5" />
+          {label.split(" ")[0]}
+        </NavLink>
+      ))}
+    </nav>
   );
 }

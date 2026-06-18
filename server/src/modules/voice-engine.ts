@@ -39,7 +39,7 @@ export function stripDashes(text: string): string {
 function channelGuidance(channel: Channel): string {
   switch (channel) {
     case "sms":
-      return "Channel: SMS. Keep it short — 1-3 sentences, no greeting/sign-off boilerplate.";
+      return "Channel: SMS. Keep it short, 1-3 sentences, no greeting/sign-off boilerplate.";
     case "email":
       return "Channel: Email. A short, warm note. A light greeting is fine; no corporate signature.";
     case "inbox":

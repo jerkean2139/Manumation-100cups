@@ -55,7 +55,7 @@ export default function Pending() {
         review.drafts.filter((d) => d.id !== draftId).map((d) => api.deleteDraft(d.id)),
       );
       setReviews((prev) => prev.filter((x) => x.key !== review.key));
-      notify(r.sent ? "Approved & sent through GHL." : "Approved (GHL not connected — not sent).");
+      notify(r.sent ? "Approved & sent through GHL." : "Approved (GHL not connected, not sent).");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -121,7 +121,7 @@ export default function Pending() {
         <div>
           <h1 className="font-serif text-3xl text-ink">Pending Replies</h1>
           <p className="mt-1 text-muted">
-            Messages that came in through GHL — snapshot built, replies drafted,
+            Messages that came in through GHL. Snapshot built, replies drafted,
             waiting for your approval.
           </p>
         </div>
@@ -179,11 +179,17 @@ export default function Pending() {
             <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
               {/* Left: the replies to act on. */}
               <div className="space-y-4">
-                <h3 className="font-serif text-xl text-ink">Suggested replies</h3>
-                {review.drafts.map((d) => (
+                <div>
+                  <h3 className="font-serif text-xl text-ink">Suggested replies</h3>
+                  <p className="mt-0.5 text-sm text-muted">
+                    Two ways to say it. Pick one, edit if you want, then approve to send it.
+                  </p>
+                </div>
+                {review.drafts.map((d, i) => (
                   <DraftCard
                     key={`${d.id}-${nonces[`${review.key}:${d.tone}`] ?? 0}`}
                     draft={d}
+                    index={i + 1}
                     threshold={threshold}
                     busy={busyKey === review.key}
                     onApprove={(text) => approve(review, d.id, text)}

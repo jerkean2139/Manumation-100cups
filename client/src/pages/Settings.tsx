@@ -8,7 +8,7 @@ const AUTO_MODES: { key: keyof SettingsType; label: string; note: string }[] = [
   { key: "autoSms", label: "SMS", note: "Auto-send approved SMS replies" },
   { key: "autoEmail", label: "Email", note: "Auto-send approved emails" },
   { key: "autoInbox", label: "Inbox", note: "Auto-send approved inbox replies" },
-  { key: "autoVoicemail", label: "Voicemail", note: "Phase 4 — not yet active" },
+  { key: "autoVoicemail", label: "Voicemail", note: "Phase 4. Not yet active" },
 ];
 
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {

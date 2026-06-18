@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Check, Pencil, RefreshCw, Trash2, AlertTriangle } from "lucide-react";
 import type { GradedDraft } from "../lib/types";
-import { Card, CardSection, Button, Badge } from "./ui";
+import { Card, CardSection, Button, Badge, InfoTip } from "./ui";
 import { cn, scoreTone } from "../lib/utils";
 
 interface Props {
   draft: GradedDraft;
   threshold: number;
+  /** 1 or 2 — shown so each card is unmistakably one of the two options. */
+  index?: number;
   onApprove: (text: string) => void;
   onRegenerate: () => void;
   onDelete: () => void;
@@ -16,6 +18,7 @@ interface Props {
 export function DraftCard({
   draft,
   threshold,
+  index,
   onApprove,
   onRegenerate,
   onDelete,
@@ -25,25 +28,27 @@ export function DraftCard({
   const [text, setText] = useState(draft.text);
 
   const passed = draft.grade.overall >= threshold;
+  const style = draft.tone === "warm" ? "Warm" : "Direct";
 
   return (
     <Card className={cn(!passed && "border-clay/40")}>
       <CardSection>
         <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-ink">
+            {index ? `Option ${index} · ${style}` : style}
+          </span>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold capitalize text-ink">
-              {draft.tone === "warm" ? "Warm & conversational" : "Direct & practical"}
-            </span>
             {draft.rewritten && <Badge>auto-rewritten</Badge>}
-          </div>
-          <div
-            className={cn(
-              "flex items-center gap-1.5 text-sm font-semibold",
-              scoreTone(draft.grade.overall),
-            )}
-          >
-            {!passed && <AlertTriangle className="h-3.5 w-3.5" />}
-            Humanity {draft.grade.overall}
+            <span
+              className={cn(
+                "flex items-center gap-1 text-sm font-semibold",
+                scoreTone(draft.grade.overall),
+              )}
+            >
+              {!passed && <AlertTriangle className="h-3.5 w-3.5" />}
+              Humanity {draft.grade.overall}
+              {draft.grade.notes && <InfoTip text={draft.grade.notes} />}
+            </span>
           </div>
         </div>
 
@@ -59,17 +64,12 @@ export function DraftCard({
         )}
 
         {draft.grade.flags.length > 0 && (
-          <p className="mt-2 text-xs text-clay">
-            Flagged: {draft.grade.flags.join(", ")}
-          </p>
-        )}
-        {draft.grade.notes && (
-          <p className="mt-2 text-xs leading-relaxed text-muted">{draft.grade.notes}</p>
+          <p className="mt-2 text-xs text-clay">Flagged: {draft.grade.flags.join(", ")}</p>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onApprove(text)} disabled={busy}>
-            <Check className="h-4 w-4" /> Approve & Send
+            <Check className="h-4 w-4" /> Approve &amp; Send
           </Button>
           <Button variant="outline" onClick={() => setEditing((v) => !v)} disabled={busy}>
             <Pencil className="h-4 w-4" /> {editing ? "Done" : "Edit"}

@@ -1,5 +1,6 @@
 import { structured } from "../ai/client.js";
 import { MISSION } from "../ai/prompts.js";
+import { stripDashes } from "./voice-engine.js";
 import { formatContext } from "./format.js";
 import type {
   ContactContext,
@@ -80,7 +81,7 @@ You are the Relationship Engine. Build a relationship snapshot that answers:
 who is this person, why do they matter, what's happening in their world, what
 should Jeremy talk about next, and what should he avoid.
 
-Scores (0-100), each defined to help Jeremy make a better decision — not vanity:
+Scores (0-100), each defined to help Jeremy make a better decision, not vanity:
 - relationshipHealth: overall health of the bond
 - trust: how much trust has been earned, both ways
 - humanity: how human vs transactional the relationship feels
@@ -129,5 +130,13 @@ Build the relationship snapshot.`;
   for (const key of Object.keys(snapshot.scores) as (keyof typeof snapshot.scores)[]) {
     snapshot.scores[key] = clamp(snapshot.scores[key] ?? 0);
   }
+
+  // No em dashes anywhere, including the tiles shown on screen.
+  snapshot.currentSeason = stripDashes(snapshot.currentSeason);
+  snapshot.bestMemory = stripDashes(snapshot.bestMemory);
+  snapshot.lastMeaningfulMoment = stripDashes(snapshot.lastMeaningfulMoment);
+  snapshot.nextBestConversation = stripDashes(snapshot.nextBestConversation);
+  snapshot.whyTheyMatter = stripDashes(snapshot.whyTheyMatter);
+  snapshot.avoidSaying = snapshot.avoidSaying.map(stripDashes);
   return snapshot;
 }
