@@ -82,13 +82,12 @@ export async function processInbound(opts: ProcessOptions): Promise<SnapshotResu
   // Jeremy Voice Engine — two options.
   const replies = await writeReplies(ctx, snapshot, opts.inboundMessage, channel);
 
-  // Humanity Auditor — grade both, rewrite any that fall short.
-  const drafts: GradedDraft[] = [];
-  for (const reply of replies) {
-    drafts.push(
-      await gradeAndMaybeRewrite(ctx, snapshot, opts.inboundMessage, reply, threshold),
-    );
-  }
+  // Humanity Auditor — grade both in parallel, rewriting any that fall short.
+  const drafts: GradedDraft[] = await Promise.all(
+    replies.map((reply) =>
+      gradeAndMaybeRewrite(ctx, snapshot, opts.inboundMessage, reply, threshold),
+    ),
+  );
 
   // Persist for approval (no-ops without a database).
   const contactRowId = await repo.upsertContact(ctx);

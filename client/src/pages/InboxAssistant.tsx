@@ -20,6 +20,7 @@ export default function InboxAssistant() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [threshold, setThreshold] = useState(95);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     api.contacts().then((r) => {
@@ -28,6 +29,16 @@ export default function InboxAssistant() {
     });
     api.health().then((h) => setThreshold(h.humanityThreshold)).catch(() => {});
   }, []);
+
+  // Live elapsed-time counter so the (legitimately slow) pipeline never looks hung.
+  useEffect(() => {
+    if (!loading) {
+      setElapsed(0);
+      return;
+    }
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [loading]);
 
   const notify = (msg: string) => {
     setToast(msg);
@@ -43,6 +54,7 @@ export default function InboxAssistant() {
       const r = await api.buildSnapshot({ contactId, inboundMessage: message, channel });
       setResult(r);
       setDrafts(r.drafts);
+      notify("Saved to Pending Replies.");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -177,9 +189,17 @@ export default function InboxAssistant() {
       )}
 
       {loading && (
-        <div className="mt-8 flex justify-center">
-          <Spinner label="Remembering what matters about this person…" />
-        </div>
+        <Card className="mt-8">
+          <CardSection>
+            <Spinner label={`Reading the relationship…  ${elapsed}s`} />
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              This runs several steps — extracting memories, building the snapshot,
+              drafting two replies, and auditing each for humanity. It usually takes
+              30–60 seconds. You can leave this page; finished replies always land in{" "}
+              <span className="font-medium text-ink">Pending Replies</span>.
+            </p>
+          </CardSection>
+        </Card>
       )}
 
       {result && !loading && (
