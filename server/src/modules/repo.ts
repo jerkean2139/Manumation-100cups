@@ -405,6 +405,61 @@ export async function getPendingReviews(): Promise<PendingReview[]> {
   return [...groups.values()];
 }
 
+/** Read the stored prompt-config overrides (partial). Null when no DB or unset. */
+export async function getPromptConfigOverrides(): Promise<Record<string, unknown> | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(schema.promptConfig).limit(1);
+  return row?.data ?? null;
+}
+
+/** Persist prompt-config overrides (merged over whatever is already stored). */
+export async function savePromptConfigOverrides(
+  patch: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const db = getDb();
+  if (!db) return patch;
+  const current = (await getPromptConfigOverrides()) ?? {};
+  const merged = { ...current, ...patch };
+  await db
+    .insert(schema.promptConfig)
+    .values({ id: 1, data: merged })
+    .onConflictDoUpdate({
+      target: schema.promptConfig.id,
+      set: { data: merged, updatedAt: new Date() },
+    });
+  return merged;
+}
+
+/** All contacts we've stored locally (synced or processed), for the picker. */
+export async function listStoredContacts() {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      id: schema.contacts.ghlContactId,
+      name: schema.contacts.name,
+      email: schema.contacts.email,
+      tags: schema.contacts.tags,
+    })
+    .from(schema.contacts)
+    .orderBy(desc(schema.contacts.updatedAt));
+  return rows;
+}
+
+/** Wipe all prompt-config overrides, reverting to shipped defaults. */
+export async function clearPromptConfigOverrides(): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .insert(schema.promptConfig)
+    .values({ id: 1, data: {} })
+    .onConflictDoUpdate({
+      target: schema.promptConfig.id,
+      set: { data: {}, updatedAt: new Date() },
+    });
+}
+
 const DEFAULT_SETTINGS = {
   id: 1,
   autoSms: false,

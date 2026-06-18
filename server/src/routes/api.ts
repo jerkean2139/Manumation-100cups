@@ -4,6 +4,8 @@ import { env, hasAnthropic, hasGhl, authEnabled } from "../env.js";
 import { requireAuth, checkPassword, issueToken } from "../auth.js";
 import { hasDb } from "../db/index.js";
 import { processInbound, syncContactFromGhl } from "../modules/snapshot.js";
+import { loadConfig } from "../ai/config.js";
+import { DEFAULT_PROMPT_CONFIG, PROMPT_FIELD_HELP } from "../ai/prompts.js";
 import { writeReplies } from "../modules/voice-engine.js";
 import { auditReply } from "../modules/humanity-auditor.js";
 import { buildSnapshot } from "../modules/relationship-engine.js";
@@ -306,23 +308,74 @@ router.get(
   }),
 );
 
-// ── Demo contacts (for the UI to list something on day one) ──────────────
-router.get("/api/contacts", (_req, res) => {
-  res.json({
-    contacts: listDemoContacts().map((c) => ({
-      id: c.ghlContactId,
-      name: c.name,
-      email: c.email,
-      tags: c.tags,
-    })),
-  });
-});
+// ── Contacts for the picker: locally-stored (synced/real) + demos ────────
+router.get(
+  "/api/contacts",
+  asyncH(async (_req, res) => {
+    const stored = await repo.listStoredContacts();
+    const storedIds = new Set(stored.map((c) => c.id));
+    const demos = listDemoContacts()
+      .filter((c) => !storedIds.has(c.ghlContactId))
+      .map((c) => ({ id: c.ghlContactId, name: c.name, email: c.email, tags: c.tags }));
+    res.json({ contacts: [...stored, ...demos] });
+  }),
+);
 
 // ── Settings ─────────────────────────────────────────────────────────────
 router.get(
   "/api/settings",
   asyncH(async (_req, res) => {
     res.json(await repo.getSettings());
+  }),
+);
+
+// ── Voice & Prompt profile (editable levers + copy) ──────────────────────
+router.get(
+  "/api/prompt-config",
+  asyncH(async (_req, res) => {
+    res.json({
+      config: await loadConfig(),
+      defaults: DEFAULT_PROMPT_CONFIG,
+      help: PROMPT_FIELD_HELP,
+      persistence: hasDb(),
+    });
+  }),
+);
+
+const promptConfigSchema = z.object({
+  mission: z.string().optional(),
+  jeremyVoice: z.string().optional(),
+  humanityStandards: z.string().optional(),
+  memoryGuidance: z.string().optional(),
+  warmStyle: z.string().optional(),
+  directStyle: z.string().optional(),
+  effort: z.enum(["low", "medium", "high"]).optional(),
+});
+
+router.post(
+  "/api/prompt-config",
+  asyncH(async (req, res) => {
+    if (!hasDb()) {
+      return res
+        .status(400)
+        .json({ error: "No database connected — set DATABASE_URL to save the profile." });
+    }
+    const parsed = promptConfigSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    await repo.savePromptConfigOverrides(parsed.data);
+    res.json({ ok: true, config: await loadConfig() });
+  }),
+);
+
+// ── Reset the prompt profile to shipped defaults ─────────────────────────
+router.post(
+  "/api/prompt-config/reset",
+  asyncH(async (_req, res) => {
+    if (hasDb()) await repo.clearPromptConfigOverrides();
+    // Clearing overrides means loadConfig() returns the defaults.
+    res.json({ ok: true, config: DEFAULT_PROMPT_CONFIG });
   }),
 );
 

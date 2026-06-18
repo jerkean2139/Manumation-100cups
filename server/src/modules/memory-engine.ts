@@ -1,5 +1,5 @@
 import { structured } from "../ai/client.js";
-import { MISSION, MEMORY_TYPES } from "../ai/prompts.js";
+import { loadConfig } from "../ai/config.js";
 import { stripDashes } from "./voice-engine.js";
 import { formatContext } from "./format.js";
 import type { ContactContext, ExtractedMemory, MemoryType } from "../types.js";
@@ -47,12 +47,16 @@ const schema = {
   required: ["memories"],
 };
 
-const SYSTEM = `${MISSION}
+export async function extractMemories(
+  ctx: ContactContext,
+): Promise<ExtractedMemory[]> {
+  const cfg = await loadConfig();
+  const system = `${cfg.mission}
 
 You are the Memory Engine. Extract the relationship memories worth remembering
 about this contact from their notes and conversation history.
 
-${MEMORY_TYPES}
+${cfg.memoryGuidance}
 
 Rules:
 - One clean, specific fact per memory. Write it as something a person would
@@ -62,15 +66,12 @@ Rules:
 - Prefer fewer, higher-signal memories over an exhaustive dump.
 - Never invent. If the history is thin, return few or no memories.`;
 
-export async function extractMemories(
-  ctx: ContactContext,
-): Promise<ExtractedMemory[]> {
   const result = await structured<{ memories: ExtractedMemory[] }>({
-    system: SYSTEM,
+    system,
     user: `Extract relationship memories from the following:\n\n${formatContext(ctx)}`,
     schema,
     maxTokens: 3000,
-    effort: "high",
+    effort: cfg.effort,
   });
 
   return (result.memories ?? [])

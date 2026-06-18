@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { Settings as SettingsType } from "../lib/types";
 import { Card, CardSection, Button } from "../components/ui";
+import { PromptProfile } from "../components/PromptProfile";
 import { cn } from "../lib/utils";
 
 const AUTO_MODES: { key: keyof SettingsType; label: string; note: string }[] = [
@@ -116,6 +117,8 @@ export default function Settings() {
           </p>
         </CardSection>
       </Card>
+
+      <PromptProfile />
 
       {saved && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-xl bg-ink px-4 py-2 text-sm text-canvas shadow-soft">

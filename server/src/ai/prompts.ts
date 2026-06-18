@@ -71,3 +71,48 @@ export const MEMORY_TYPES = `Memory types (use exactly one per memory):
 
 Store only durable relationship intelligence. Never store random trivia, logistics,
 or anything that wouldn't help someone genuinely remember this person months later.`;
+
+/**
+ * The editable voice/prompt profile. Every lever and every block of prompt copy
+ * the engines use lives here, so it can be tuned from Settings without a deploy.
+ * The defaults below are the shipped Manumation voice.
+ */
+export interface PromptConfig {
+  /** The overall mission/philosophy prepended to every engine. */
+  mission: string;
+  /** Who Jeremy is and isn't, in his voice. */
+  jeremyVoice: string;
+  /** The humanity standards: dead phrases to reject, what to avoid. */
+  humanityStandards: string;
+  /** How the Memory Engine decides what is worth remembering. */
+  memoryGuidance: string;
+  /** Style brief for reply Option 1. */
+  warmStyle: string;
+  /** Style brief for reply Option 2. */
+  directStyle: string;
+  /** Thinking depth / cost for the engines: low | medium | high. */
+  effort: "low" | "medium" | "high";
+}
+
+export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
+  mission: MISSION,
+  jeremyVoice: JEREMY_VOICE,
+  humanityStandards: HUMANITY_STANDARDS,
+  memoryGuidance: MEMORY_TYPES,
+  warmStyle: "Warm and conversational. Lead with genuine human warmth.",
+  directStyle: "Direct and practical. Get to the point, still human.",
+  effort: "high",
+};
+
+/** Field-by-field help shown next to each editable field in Settings. */
+export const PROMPT_FIELD_HELP: Record<keyof PromptConfig, string> = {
+  mission:
+    "The core philosophy prepended to every engine. Defines what the system is for.",
+  jeremyVoice: "Who the sender is and isn't. Shapes how every reply sounds.",
+  humanityStandards:
+    "Phrases and behaviors to reject (dead phrases, false intimacy, anything that feels automated).",
+  memoryGuidance: "How the Memory Engine decides what is worth remembering.",
+  warmStyle: "The brief for reply Option 1 (the warm option).",
+  directStyle: "The brief for reply Option 2 (the direct option).",
+  effort: "How hard the AI thinks. Higher is better quality but slower and costlier.",
+};

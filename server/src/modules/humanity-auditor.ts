@@ -1,5 +1,6 @@
 import { structured } from "../ai/client.js";
-import { MISSION, JEREMY_VOICE, HUMANITY_STANDARDS } from "../ai/prompts.js";
+import { loadConfig } from "../ai/config.js";
+import type { PromptConfig } from "../ai/prompts.js";
 import type { DraftReply, HumanityGrade, Snapshot } from "../types.js";
 
 /**
@@ -41,11 +42,11 @@ const schema = {
   ],
 };
 
-const SYSTEM = `${MISSION}
+const systemFor = (cfg: PromptConfig) => `${cfg.mission}
 
-${JEREMY_VOICE}
+${cfg.jeremyVoice}
 
-${HUMANITY_STANDARDS}
+${cfg.humanityStandards}
 
 You are the Humanity Auditor. Grade the reply on each dimension (0-100):
 - specificity: is it concrete and grounded, not generic?
@@ -93,8 +94,9 @@ Tone intended: ${draft.tone}
 REPLY TO GRADE:
 "${draft.text}"`;
 
+  const cfg = await loadConfig();
   const raw = await structured<Omit<HumanityGrade, "overall">>({
-    system: SYSTEM,
+    system: systemFor(cfg),
     user,
     schema,
     maxTokens: 1500,

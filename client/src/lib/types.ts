@@ -77,6 +77,16 @@ export interface PendingReview {
   drafts: (GradedDraft & { id: string })[];
 }
 
+export interface PromptConfig {
+  mission: string;
+  jeremyVoice: string;
+  humanityStandards: string;
+  memoryGuidance: string;
+  warmStyle: string;
+  directStyle: string;
+  effort: "low" | "medium" | "high";
+}
+
 export interface Settings {
   autoSms: boolean;
   autoEmail: boolean;
