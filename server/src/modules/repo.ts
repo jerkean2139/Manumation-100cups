@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import { env } from "../env.js";
 import type {
@@ -214,6 +214,110 @@ export async function getDraft(draftId: string) {
     .where(eq(schema.messageDrafts.id, draftId))
     .limit(1);
   return row ?? null;
+}
+
+export interface PendingReview {
+  key: string;
+  contactId: string;
+  ghlContactId: string;
+  contactName: string;
+  inboundMessage: string;
+  channel: string;
+  createdAt: Date;
+  snapshot: {
+    scores: Record<string, number>;
+    stage: string;
+    currentSeason: string;
+    bestMemory: string;
+    lastMeaningfulMoment: string;
+    avoidSaying: string[];
+    nextBestConversation: string;
+    whyTheyMatter: string;
+  } | null;
+  drafts: {
+    id: string;
+    tone: string;
+    channel: string;
+    text: string;
+    grade: Record<string, unknown> | null;
+    rewritten: boolean;
+  }[];
+}
+
+/**
+ * Everything awaiting Jeremy's approval — the webhook-built snapshots and their
+ * two replies, grouped into review cards. This is what closes the inbound loop:
+ * a message comes in, the engines run, and the result lands here for approval.
+ */
+export async function getPendingReviews(): Promise<PendingReview[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  const drafts = await db
+    .select()
+    .from(schema.messageDrafts)
+    .where(eq(schema.messageDrafts.status, "pending"))
+    .orderBy(desc(schema.messageDrafts.createdAt));
+  if (drafts.length === 0) return [];
+
+  const snapshotIds = [
+    ...new Set(drafts.map((d) => d.snapshotId).filter((x): x is string => Boolean(x))),
+  ];
+  const contactIds = [...new Set(drafts.map((d) => d.contactId))];
+
+  const snaps = snapshotIds.length
+    ? await db.select().from(schema.snapshots).where(inArray(schema.snapshots.id, snapshotIds))
+    : [];
+  const conts = await db
+    .select()
+    .from(schema.contacts)
+    .where(inArray(schema.contacts.id, contactIds));
+
+  const snapById = new Map(snaps.map((s) => [s.id, s]));
+  const contById = new Map(conts.map((c) => [c.id, c]));
+
+  const groups = new Map<string, PendingReview>();
+  for (const d of drafts) {
+    const key = d.snapshotId ?? `${d.contactId}:${d.inboundMessage ?? ""}`;
+    let group = groups.get(key);
+    if (!group) {
+      const contact = contById.get(d.contactId);
+      const snap = d.snapshotId ? snapById.get(d.snapshotId) : undefined;
+      group = {
+        key,
+        contactId: d.contactId,
+        ghlContactId: contact?.ghlContactId ?? d.contactId,
+        contactName: contact?.name ?? "Unknown",
+        inboundMessage: d.inboundMessage ?? "",
+        channel: d.channel,
+        createdAt: d.createdAt,
+        snapshot: snap
+          ? {
+              scores: snap.scores,
+              stage: snap.stage,
+              currentSeason: snap.currentSeason ?? "",
+              bestMemory: snap.bestMemory ?? "",
+              lastMeaningfulMoment: snap.lastMeaningfulMoment ?? "",
+              avoidSaying: snap.avoidSaying ?? [],
+              nextBestConversation: snap.nextBestConversation ?? "",
+              whyTheyMatter: snap.whyTheyMatter ?? "",
+            }
+          : null,
+        drafts: [],
+      };
+      groups.set(key, group);
+    }
+    group.drafts.push({
+      id: d.id,
+      tone: d.tone,
+      channel: d.channel,
+      text: d.text,
+      grade: d.grade ?? null,
+      rewritten: d.rewritten,
+    });
+  }
+
+  return [...groups.values()];
 }
 
 const DEFAULT_SETTINGS = {
