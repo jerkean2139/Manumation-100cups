@@ -97,6 +97,18 @@ Each dependency is optional and the app tells you what's online at `/health`:
 - **No `ANTHROPIC_API_KEY`** → engines are offline (everything else still serves).
 - **No `DATABASE_URL`** → no persistence; the live flow still works.
 - **No GHL token** → demo mode; approved replies aren't sent, memories aren't mirrored to GHL notes.
+- **No `APP_PASSWORD`** → dashboard runs **open** (fine for local). Set it to gate the app.
+
+### Auth & tenancy
+
+- **Single-user password** (`APP_PASSWORD`). The dashboard and `/api/*` are gated by a
+  signed session token (HMAC, no extra deps); the SPA shows a login screen and stores
+  the token. The GHL webhook is exempt — it authenticates with its own
+  `GHL_WEBHOOK_SECRET`, since GHL can't carry a user session.
+- **Tenant-ready, single-tenant v1.** Every contact is scoped to a `location` keyed by
+  GHL's `locationId` — exactly GHL's structure (Agency → Locations → Contacts). v1 runs
+  one location (Jeremy); growing into a multi-tenant marketplace app later is additive
+  (add OAuth + onboarding), not a schema migration.
 
 ---
 
@@ -127,18 +139,35 @@ curl -s localhost:8080/api/snapshot/build \
 
 ## Deploy to Railway
 
-1. Provision a **PostgreSQL** plugin (sets `DATABASE_URL`).
-2. Set `ANTHROPIC_API_KEY`, and the `GHL_*` variables when ready.
-3. Railway uses `railway.json`: builds the client + server, runs `npm run start`,
-   health-checks `/health`. The Express server serves the built client from
-   `client/dist`.
-4. Point a GHL workflow webhook at `POST /webhooks/ghl/inbound-message`.
+1. **New Project → Deploy from GitHub repo** → pick this repo (`main`).
+2. **Add a PostgreSQL plugin.** Railway injects `DATABASE_URL` automatically. The
+   schema is created on first boot — no manual migration step (see below).
+3. **Set environment variables** on the service:
+   - `ANTHROPIC_API_KEY` — required for the engines
+   - `APP_PASSWORD` — gate the dashboard (strongly recommended)
+   - `AUTH_SECRET` — a long random string for signing sessions
+   - `GHL_API_TOKEN`, `GHL_LOCATION_ID`, `GHL_WEBHOOK_SECRET` — when connecting GHL
+   - `NODE_ENV=production`
+4. Railway uses `railway.json`: it builds the client + server, runs `npm run start`,
+   and health-checks `/health`. The Express server serves the built client from
+   `client/dist`, so it's a single service.
+5. Point a GHL workflow webhook at `POST /webhooks/ghl/inbound-message` (add the
+   `x-ghl-secret` header matching `GHL_WEBHOOK_SECRET`).
+
+### Schema migrations
+
+On boot, the server runs an **idempotent bootstrap** (`server/src/db/bootstrap.ts`)
+that creates every table `IF NOT EXISTS` and seeds the default location — so a fresh
+Railway deploy comes up ready, and restarts are safe. (`npm run db:push` is also
+available for applying the Drizzle schema directly during development.)
 
 ---
 
 ## Database tables
 
-`contacts` · `memories` · `snapshots` · `message_drafts` · `settings` · `audit_logs` · `conversation_events`
+`locations` · `contacts` · `memories` · `snapshots` · `message_drafts` · `settings` · `audit_logs` · `conversation_events`
+
+(`locations` is the tenant boundary; `contacts.location_id` scopes everyone to a GHL location.)
 
 Schema lives in `server/src/db/schema.ts`. Generate/apply migrations with
 `npm run db:generate` / `npm run db:push`.

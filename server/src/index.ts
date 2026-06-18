@@ -3,8 +3,9 @@ import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import { env, hasAnthropic, hasGhl } from "./env.js";
+import { env, hasAnthropic, hasGhl, authEnabled } from "./env.js";
 import { hasDb } from "./db/index.js";
+import { bootstrapDatabase } from "./db/bootstrap.js";
 import { router } from "./routes/api.js";
 
 const app = express();
@@ -27,10 +28,25 @@ if (fs.existsSync(clientDist)) {
   });
 }
 
-app.listen(env.port, () => {
-  console.log(`\n  Manumation Snapshot — helping ${env.senderName} remember people.`);
-  console.log(`  Listening on http://localhost:${env.port}`);
-  console.log(`  Relationship Engine: ${hasAnthropic() ? "online" : "OFFLINE (set ANTHROPIC_API_KEY)"}`);
-  console.log(`  GHL Connector:       ${hasGhl() ? "connected" : "offline (demo mode)"}`);
-  console.log(`  Database:            ${hasDb() ? "connected" : "offline (no persistence)"}\n`);
-});
+async function start() {
+  // Create the schema on first boot (idempotent). Don't crash the app if the
+  // DB is briefly unavailable — log and continue; the next request/restart retries.
+  if (hasDb()) {
+    try {
+      await bootstrapDatabase();
+    } catch (err) {
+      console.error("  Database bootstrap failed:", (err as Error).message);
+    }
+  }
+
+  app.listen(env.port, () => {
+    console.log(`\n  Manumation Snapshot — helping ${env.senderName} remember people.`);
+    console.log(`  Listening on http://localhost:${env.port}`);
+    console.log(`  Relationship Engine: ${hasAnthropic() ? "online" : "OFFLINE (set ANTHROPIC_API_KEY)"}`);
+    console.log(`  GHL Connector:       ${hasGhl() ? "connected" : "offline (demo mode)"}`);
+    console.log(`  Database:            ${hasDb() ? "connected" : "offline (no persistence)"}`);
+    console.log(`  Dashboard auth:      ${authEnabled() ? "enabled" : "OPEN (set APP_PASSWORD)"}\n`);
+  });
+}
+
+void start();

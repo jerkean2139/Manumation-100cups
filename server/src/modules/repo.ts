@@ -1,5 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
+import { env } from "../env.js";
 import type {
   ContactContext,
   ExtractedMemory,
@@ -14,9 +15,41 @@ import type {
  * / empty so the relationship-intelligence flow still works in demo mode.
  */
 
+/**
+ * Resolve the tenant (location) a contact belongs to. v1 is single-tenant: one
+ * default location keyed by the configured GHL location id. Returns null only
+ * when there's no DB.
+ */
+export async function resolveLocationId(): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  const key = env.ghl.locationId || "default";
+  const [existing] = await db
+    .select({ id: schema.locations.id })
+    .from(schema.locations)
+    .where(eq(schema.locations.ghlLocationId, key))
+    .limit(1);
+  if (existing) return existing.id;
+  const [created] = await db
+    .insert(schema.locations)
+    .values({ ghlLocationId: key, name: env.senderName })
+    .onConflictDoNothing()
+    .returning({ id: schema.locations.id });
+  if (created) return created.id;
+  // Lost a race — read it back.
+  const [row] = await db
+    .select({ id: schema.locations.id })
+    .from(schema.locations)
+    .where(eq(schema.locations.ghlLocationId, key))
+    .limit(1);
+  return row?.id ?? null;
+}
+
 export async function upsertContact(ctx: ContactContext): Promise<string | null> {
   const db = getDb();
   if (!db) return null;
+
+  const locationId = await resolveLocationId();
 
   const [existing] = await db
     .select()
@@ -42,6 +75,7 @@ export async function upsertContact(ctx: ContactContext): Promise<string | null>
   const [created] = await db
     .insert(schema.contacts)
     .values({
+      locationId: locationId ?? undefined,
       ghlContactId: ctx.ghlContactId,
       name: ctx.name,
       email: ctx.email,

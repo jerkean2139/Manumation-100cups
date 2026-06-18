@@ -25,5 +25,6 @@ if (env.databaseUrl) {
 }
 
 export const getDb = () => dbInstance;
+export const getPool = () => pool;
 export const hasDb = () => dbInstance !== null;
 export { schema };

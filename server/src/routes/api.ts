@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { env, hasAnthropic, hasGhl } from "../env.js";
+import { env, hasAnthropic, hasGhl, authEnabled } from "../env.js";
+import { requireAuth, checkPassword, issueToken } from "../auth.js";
 import { hasDb } from "../db/index.js";
 import { processInbound } from "../modules/snapshot.js";
 import { writeReplies } from "../modules/voice-engine.js";
@@ -34,6 +35,7 @@ router.get("/health", (_req, res) => {
       ghlConnector: hasGhl() ? "connected" : "offline (no GHL token)",
       database: hasDb() ? "connected" : "offline (no DATABASE_URL)",
     },
+    auth: authEnabled() ? "enabled" : "open",
     senderProfile: env.senderName,
     humanityThreshold: env.humanityThreshold,
   });
@@ -70,6 +72,31 @@ router.post(
     res.json({ ok: true, result });
   }),
 );
+
+// ── Auth (public) ─────────────────────────────────────────────────────────
+router.get("/api/auth/status", (_req, res) => {
+  res.json({ authRequired: authEnabled() });
+});
+
+router.post(
+  "/api/auth/login",
+  asyncH(async (req, res) => {
+    if (!authEnabled()) {
+      // No password configured — hand back a token so the client proceeds.
+      return res.json({ ok: true, token: issueToken(), authRequired: false });
+    }
+    const password = z.string().min(1).safeParse(req.body?.password);
+    if (!password.success || !checkPassword(password.data)) {
+      return res.status(401).json({ error: "Incorrect password." });
+    }
+    res.json({ ok: true, token: issueToken(), authRequired: true });
+  }),
+);
+
+// ── Everything below requires a valid session (no-op when auth is disabled) ──
+// Public surfaces above this line: /health, the GHL webhook (own secret), and
+// the two /api/auth endpoints.
+router.use("/api", requireAuth);
 
 // ── Build a snapshot on demand ───────────────────────────────────────────
 const buildSchema = z.object({
