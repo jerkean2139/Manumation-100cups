@@ -177,6 +177,28 @@ export const conversationEvents = pgTable(
   }),
 );
 
+/**
+ * Raw GHL notes, pulled and stored locally so the relationship history lives
+ * here ("client memory") and the Memory Engine doesn't depend on a live GHL
+ * round-trip every time.
+ */
+export const contactNotes = pgTable(
+  "contact_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    ghlNoteId: text("ghl_note_id"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    contactIdx: index("notes_contact_idx").on(t.contactId),
+  }),
+);
+
 export type LocationRow = typeof locations.$inferSelect;
 export type ContactRow = typeof contacts.$inferSelect;
 export type MemoryRow = typeof memories.$inferSelect;

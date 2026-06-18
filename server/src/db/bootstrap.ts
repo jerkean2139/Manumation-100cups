@@ -110,6 +110,16 @@ CREATE TABLE IF NOT EXISTS conversation_events (
   occurred_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS events_contact_idx ON conversation_events (contact_id);
+
+CREATE TABLE IF NOT EXISTS contact_notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  ghl_note_id text,
+  body text NOT NULL,
+  created_at timestamptz,
+  synced_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS notes_contact_idx ON contact_notes (contact_id);
 `;
 
 let bootstrapped = false;

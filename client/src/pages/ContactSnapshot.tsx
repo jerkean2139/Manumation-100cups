@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { api } from "../lib/api";
 import type { ContactSummary } from "../lib/types";
-import { Card, CardSection, Badge, Spinner } from "../components/ui";
+import { Card, CardSection, Badge, Button, Spinner } from "../components/ui";
 
 interface ContactContext {
   ghlContactId: string;
@@ -28,6 +29,8 @@ export default function ContactSnapshot() {
   const [contact, setContact] = useState<ContactContext | null>(null);
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
     api.contacts().then((r) => {
@@ -36,39 +39,71 @@ export default function ContactSnapshot() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!selected) return;
+  function load(id: string) {
+    if (!id) return;
     setLoading(true);
     api
-      .contact(selected)
+      .contact(id)
       .then((r) => {
-        const c = (r.contact as ContactContext) ?? null;
-        setContact(c);
+        setContact((r.contact as ContactContext) ?? null);
         setMemories((r.memories as StoredMemory[]) ?? []);
       })
       .catch(() => setContact(null))
       .finally(() => setLoading(false));
-  }, [selected]);
+  }
+
+  useEffect(() => {
+    load(selected);
+  }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function sync() {
+    if (!selected) return;
+    setSyncing(true);
+    setToast("");
+    try {
+      const r = await api.syncContact(selected);
+      setToast(
+        `Pulled from ${r.source === "ghl" ? "GHL" : "demo"}: ${r.stored.notes} notes, ${r.stored.conversations} messages, ${r.stored.memories} memories stored.`,
+      );
+      load(selected);
+    } catch (e) {
+      setToast((e as Error).message);
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setToast(""), 5000);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl text-ink">Contact Snapshot</h1>
           <p className="mt-1 text-muted">The full relationship profile and history.</p>
         </div>
-        <select
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="rounded-xl border border-sand bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
-        >
-          {contacts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={sync} disabled={syncing || !selected}>
+            <RefreshCw className="h-4 w-4" /> {syncing ? "Syncing…" : "Sync from GHL"}
+          </Button>
+          <select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            className="rounded-xl border border-sand bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
+          >
+            {contacts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </header>
+
+      {toast && (
+        <div className="mb-4 rounded-xl border border-sand bg-paper p-3 text-sm text-ink shadow-soft">
+          {toast}
+        </div>
+      )}
 
       {loading && <Spinner label="Loading relationship…" />}
 

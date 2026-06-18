@@ -3,7 +3,7 @@ import { z } from "zod";
 import { env, hasAnthropic, hasGhl, authEnabled } from "../env.js";
 import { requireAuth, checkPassword, issueToken } from "../auth.js";
 import { hasDb } from "../db/index.js";
-import { processInbound } from "../modules/snapshot.js";
+import { processInbound, syncContactFromGhl } from "../modules/snapshot.js";
 import { writeReplies } from "../modules/voice-engine.js";
 import { auditReply } from "../modules/humanity-auditor.js";
 import { buildSnapshot } from "../modules/relationship-engine.js";
@@ -240,24 +240,61 @@ router.get(
   asyncH(async (req, res) => {
     const id = req.params.id;
 
-    // Demo contacts resolve directly.
-    const demo = getDemoContact(id);
-    if (demo) {
-      return res.json({ source: "demo", contact: demo });
+    // Locally-stored history first (this is the "client memory"), keyed by GHL id.
+    const bundle = await repo.getContactBundleByGhlId(id);
+    if (bundle && (bundle.notes.length || bundle.conversations.length || bundle.memories.length)) {
+      const c = bundle.contact;
+      return res.json({
+        source: "db",
+        contact: {
+          ghlContactId: c.ghlContactId,
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          tags: c.tags,
+          customFields: c.customFields,
+          notes: bundle.notes.map((n) => ({
+            body: n.body,
+            createdAt: n.createdAt?.toISOString(),
+          })),
+          conversations: bundle.conversations.map((cv) => ({
+            direction: cv.direction,
+            channel: cv.channel,
+            body: cv.body,
+            createdAt: cv.occurredAt?.toISOString(),
+          })),
+        },
+        memories: bundle.memories,
+      });
     }
 
-    const stored = await repo.getContactWithHistory(id);
-    if (stored) {
-      return res.json({ source: "db", ...stored });
+    // Demo contacts (when nothing stored yet).
+    const demo = getDemoContact(id);
+    if (demo) {
+      return res.json({ source: "demo", contact: demo, memories: [] });
     }
 
     // Fall back to a live GHL pull.
     if (hasGhl()) {
       const ctx = await pullContactContext(id);
-      return res.json({ source: "ghl", contact: ctx });
+      return res.json({ source: "ghl", contact: ctx, memories: [] });
     }
 
     res.status(404).json({ error: "Contact not found." });
+  }),
+);
+
+// ── Sync a contact's notes + history from GHL into our memory ─────────────
+router.post(
+  "/api/contact/:id/sync",
+  asyncH(async (req, res) => {
+    if (!hasDb()) {
+      return res
+        .status(400)
+        .json({ error: "No database connected — set DATABASE_URL to store history." });
+    }
+    const result = await syncContactFromGhl(req.params.id);
+    res.json({ ok: true, ...result });
   }),
 );
 
