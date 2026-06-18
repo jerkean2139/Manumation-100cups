@@ -31,13 +31,40 @@ export default function ContactSnapshot() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState("");
+  const [syncId, setSyncId] = useState("");
+
+  function loadContacts(selectId?: string) {
+    return api.contacts().then((r) => {
+      setContacts(r.contacts);
+      if (selectId) setSelected(selectId);
+      else if (!selected && r.contacts[0]) setSelected(r.contacts[0].id);
+    });
+  }
 
   useEffect(() => {
-    api.contacts().then((r) => {
-      setContacts(r.contacts);
-      if (!selected && r.contacts[0]) setSelected(r.contacts[0].id);
-    });
+    loadContacts();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function syncById() {
+    const id = syncId.trim();
+    if (!id) return;
+    setSyncing(true);
+    setToast("");
+    try {
+      const r = await api.syncContact(id);
+      setToast(
+        `Pulled ${r.name} from ${r.source === "ghl" ? "GHL" : "demo"}: ${r.stored.notes} notes, ${r.stored.conversations} messages, ${r.stored.memories} memories.`,
+      );
+      setSyncId("");
+      await loadContacts(id);
+      load(id);
+    } catch (e) {
+      setToast((e as Error).message);
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setToast(""), 6000);
+    }
+  }
 
   function load(id: string) {
     if (!id) return;
@@ -104,6 +131,31 @@ export default function ContactSnapshot() {
           {toast}
         </div>
       )}
+
+      <Card className="mb-4">
+        <CardSection>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="flex-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Pull a GHL contact by ID
+              </span>
+              <input
+                value={syncId}
+                onChange={(e) => setSyncId(e.target.value)}
+                placeholder="GHL contact id"
+                className="mt-1 w-full rounded-xl border border-sand bg-canvas px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
+              />
+            </label>
+            <Button onClick={syncById} disabled={syncing || !syncId.trim()}>
+              <RefreshCw className="h-4 w-4" /> {syncing ? "Pulling…" : "Pull & store"}
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Pulls that contact's notes and conversation history from GHL into local
+            memory, then adds them to the list above. Requires GHL to be connected.
+          </p>
+        </CardSection>
+      </Card>
 
       {loading && <Spinner label="Loading relationship…" />}
 

@@ -120,6 +120,12 @@ CREATE TABLE IF NOT EXISTS contact_notes (
   synced_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS notes_contact_idx ON contact_notes (contact_id);
+
+CREATE TABLE IF NOT EXISTS prompt_config (
+  id integer PRIMARY KEY DEFAULT 1,
+  data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 `;
 
 let bootstrapped = false;

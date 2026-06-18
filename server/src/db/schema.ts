@@ -199,6 +199,13 @@ export const contactNotes = pgTable(
   }),
 );
 
+/** Editable voice/prompt profile overrides (single row, id = 1). */
+export const promptConfig = pgTable("prompt_config", {
+  id: integer("id").primaryKey().default(1),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type LocationRow = typeof locations.$inferSelect;
 export type ContactRow = typeof contacts.$inferSelect;
 export type MemoryRow = typeof memories.$inferSelect;

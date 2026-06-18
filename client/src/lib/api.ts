@@ -3,6 +3,7 @@ import type {
   ContactSummary,
   GradedDraft,
   PendingReview,
+  PromptConfig,
   Settings,
   Snapshot,
   SnapshotResult,
@@ -125,6 +126,25 @@ export const api = {
       source: "demo" | "ghl";
       stored: { notes: number; conversations: number; memories: number };
     }>(`/api/contact/${encodeURIComponent(id)}/sync`, { method: "POST" }),
+
+  getPromptConfig: () =>
+    req<{
+      config: PromptConfig;
+      defaults: PromptConfig;
+      help: Record<keyof PromptConfig, string>;
+      persistence: boolean;
+    }>("/api/prompt-config"),
+
+  savePromptConfig: (patch: Partial<PromptConfig>) =>
+    req<{ ok: boolean; config: PromptConfig }>("/api/prompt-config", {
+      method: "POST",
+      body: JSON.stringify(patch),
+    }),
+
+  resetPromptConfig: () =>
+    req<{ ok: boolean; config: PromptConfig }>("/api/prompt-config/reset", {
+      method: "POST",
+    }),
 
   getSettings: () => req<Settings>("/api/settings"),
 

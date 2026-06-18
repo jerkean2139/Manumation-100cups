@@ -1,5 +1,6 @@
 import { structured } from "../ai/client.js";
-import { MISSION, JEREMY_VOICE, HUMANITY_STANDARDS } from "../ai/prompts.js";
+import { loadConfig } from "../ai/config.js";
+import type { PromptConfig } from "../ai/prompts.js";
 import { formatContext } from "./format.js";
 import type { Channel, ContactContext, DraftReply, Snapshot } from "../types.js";
 
@@ -48,16 +49,16 @@ function channelGuidance(channel: Channel): string {
   }
 }
 
-const SYSTEM = `${MISSION}
+const systemFor = (cfg: PromptConfig) => `${cfg.mission}
 
-${JEREMY_VOICE}
+${cfg.jeremyVoice}
 
-${HUMANITY_STANDARDS}
+${cfg.humanityStandards}
 
 You are the Jeremy Voice Engine. Given an inbound message and the relationship
 snapshot, write TWO replies as Jeremy:
-- warm: warm and conversational
-- direct: direct and practical
+- warm: ${cfg.warmStyle}
+- direct: ${cfg.directStyle}
 
 Both must:
 - sound unmistakably like Jeremy (see the voice standard)
@@ -72,6 +73,7 @@ export async function writeReplies(
   inboundMessage: string,
   channel: Channel,
 ): Promise<DraftReply[]> {
+  const cfg = await loadConfig();
   const user = `${formatContext(ctx)}
 
 RELATIONSHIP SNAPSHOT:
@@ -90,11 +92,11 @@ ${channelGuidance(channel)}
 Write the two replies.`;
 
   const result = await structured<{ warm: string; direct: string }>({
-    system: SYSTEM,
+    system: systemFor(cfg),
     user,
     schema,
     maxTokens: 2000,
-    effort: "high",
+    effort: cfg.effort,
   });
 
   return [
@@ -111,6 +113,7 @@ export async function rewriteReply(
   draft: DraftReply,
   feedback: string,
 ): Promise<string> {
+  const cfg = await loadConfig();
   const schemaOne = {
     type: "object",
     additionalProperties: false,
@@ -140,11 +143,11 @@ Rewrite it so it clears the Humanity Standards while keeping the ${draft.tone}
 tone and sounding like Jeremy.`;
 
   const result = await structured<{ text: string }>({
-    system: SYSTEM,
+    system: systemFor(cfg),
     user,
     schema: schemaOne,
     maxTokens: 1500,
-    effort: "high",
+    effort: cfg.effort,
   });
 
   return stripDashes(result.text);

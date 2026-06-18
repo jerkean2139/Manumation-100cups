@@ -1,5 +1,5 @@
 import { structured } from "../ai/client.js";
-import { MISSION } from "../ai/prompts.js";
+import { loadConfig } from "../ai/config.js";
 import { stripDashes } from "./voice-engine.js";
 import { formatContext } from "./format.js";
 import type {
@@ -75,7 +75,7 @@ const schema = {
   ],
 };
 
-const SYSTEM = `${MISSION}
+const systemFor = (mission: string) => `${mission}
 
 You are the Relationship Engine. Build a relationship snapshot that answers:
 who is this person, why do they matter, what's happening in their world, what
@@ -106,6 +106,7 @@ export async function buildSnapshot(
   ctx: ContactContext,
   memories: ExtractedMemory[],
 ): Promise<Snapshot> {
+  const cfg = await loadConfig();
   const memoryBlock = memories.length
     ? memories.map((m) => `- [${m.type}] ${m.content}`).join("\n")
     : "(No memories extracted yet.)";
@@ -118,11 +119,11 @@ ${memoryBlock}
 Build the relationship snapshot.`;
 
   const snapshot = await structured<Snapshot>({
-    system: SYSTEM,
+    system: systemFor(cfg.mission),
     user,
     schema,
     maxTokens: 4000,
-    effort: "high",
+    effort: cfg.effort,
   });
 
   // Defensively clamp every score to 0-100 (the schema can't enforce the range).
