@@ -65,6 +65,18 @@ export interface ContactSummary {
   tags: string[];
 }
 
+export interface PendingReview {
+  key: string;
+  contactId: string;
+  ghlContactId: string;
+  contactName: string;
+  inboundMessage: string;
+  channel: Channel;
+  createdAt: string;
+  snapshot: Snapshot | null;
+  drafts: (GradedDraft & { id: string })[];
+}
+
 export interface Settings {
   autoSms: boolean;
   autoEmail: boolean;

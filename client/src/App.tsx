@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
-import { Inbox, LayoutGrid, LogOut, Settings as SettingsIcon, User } from "lucide-react";
+import { BellRing, Inbox, LayoutGrid, LogOut, Settings as SettingsIcon, User } from "lucide-react";
 import { cn } from "./lib/utils";
 import { api, auth, setUnauthorizedHandler } from "./lib/api";
 import InboxAssistant from "./pages/InboxAssistant";
+import Pending from "./pages/Pending";
 import Dashboard from "./pages/Dashboard";
 import ContactSnapshot from "./pages/ContactSnapshot";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 
 const NAV = [
-  { to: "/", label: "Inbox Assistant", icon: Inbox, end: true },
+  { to: "/", label: "Pending Replies", icon: BellRing, end: true },
+  { to: "/compose", label: "Inbox Assistant", icon: Inbox, end: false },
   { to: "/dashboard", label: "Dashboard", icon: LayoutGrid, end: false },
   { to: "/contact", label: "Contacts", icon: User, end: false },
   { to: "/settings", label: "Settings", icon: SettingsIcon, end: false },
@@ -102,7 +104,8 @@ export default function App() {
       />
       <main className="flex-1 overflow-y-auto">
         <Routes>
-          <Route path="/" element={<InboxAssistant />} />
+          <Route path="/" element={<Pending />} />
+          <Route path="/compose" element={<InboxAssistant />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/contact" element={<ContactSnapshot />} />
           <Route path="/contact/:id" element={<ContactSnapshot />} />

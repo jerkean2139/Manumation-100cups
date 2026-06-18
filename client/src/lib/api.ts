@@ -2,6 +2,7 @@ import type {
   Channel,
   ContactSummary,
   GradedDraft,
+  PendingReview,
   Settings,
   Snapshot,
   SnapshotResult,
@@ -86,6 +87,7 @@ export const api = {
     }),
 
   approve: (input: {
+    draftId?: string;
     contactId: string;
     text: string;
     channel?: Channel;
@@ -95,6 +97,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+
+  deleteDraft: (draftId: string) =>
+    req<{ ok: boolean }>("/api/drafts/delete", {
+      method: "POST",
+      body: JSON.stringify({ draftId }),
+    }),
+
+  pending: () =>
+    req<{ reviews: PendingReview[]; persistence: boolean }>("/api/pending"),
 
   saveMemory: (input: { contactId: string; type: string; content: string }) =>
     req<{ ok: boolean; ghlNoteSaved: boolean }>("/api/memories/save", {

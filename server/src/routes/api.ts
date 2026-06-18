@@ -261,6 +261,14 @@ router.get(
   }),
 );
 
+// ── Pending review queue (webhook-built snapshots awaiting approval) ─────
+router.get(
+  "/api/pending",
+  asyncH(async (_req, res) => {
+    res.json({ reviews: await repo.getPendingReviews(), persistence: hasDb() });
+  }),
+);
+
 // ── Demo contacts (for the UI to list something on day one) ──────────────
 router.get("/api/contacts", (_req, res) => {
   res.json({
