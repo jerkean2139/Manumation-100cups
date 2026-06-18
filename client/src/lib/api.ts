@@ -118,6 +118,14 @@ export const api = {
       `/api/contact/${encodeURIComponent(id)}`,
     ),
 
+  syncContact: (id: string) =>
+    req<{
+      ok: boolean;
+      name: string;
+      source: "demo" | "ghl";
+      stored: { notes: number; conversations: number; memories: number };
+    }>(`/api/contact/${encodeURIComponent(id)}/sync`, { method: "POST" }),
+
   getSettings: () => req<Settings>("/api/settings"),
 
   updateSettings: (patch: Partial<Settings>) =>

@@ -5,7 +5,7 @@ import { auditReply } from "./humanity-auditor.js";
 import { pullContactContext } from "./ghl-connector.js";
 import { getDemoContact } from "./demo-source.js";
 import * as repo from "./repo.js";
-import { env } from "../env.js";
+import { env, hasAnthropic } from "../env.js";
 import type {
   Channel,
   ContactContext,
@@ -68,6 +68,59 @@ async function gradeAndMaybeRewrite(
   return { ...rewritten, grade, rewritten: true };
 }
 
+/**
+ * Pull a contact's full history from GHL (or demo) and store it locally:
+ * raw notes, conversation messages, and the memories the engine extracts.
+ * Used to verify the GHL connection and to keep our "memory" current.
+ */
+export async function syncContactFromGhl(contactId: string): Promise<{
+  contactId: string;
+  name: string;
+  stored: { notes: number; conversations: number; memories: number };
+  source: "demo" | "ghl";
+}> {
+  const demo = getDemoContact(contactId);
+  const ctx = demo ?? (await pullContactContext(contactId));
+
+  const contactRowId = await repo.upsertContact(ctx);
+  let storedNotes = 0;
+  let storedConversations = 0;
+  let storedMemories = 0;
+
+  if (contactRowId) {
+    const raw = await repo.persistRawHistory(contactRowId, ctx);
+    storedNotes = raw.notes;
+    storedConversations = raw.conversations;
+
+    // Extract and store memories from the freshly pulled history (the moat).
+    // Notes/conversations are already stored above, so this is best-effort:
+    // a missing AI key shouldn't block the raw-history sync.
+    if (hasAnthropic()) {
+      try {
+        const memories = await extractMemories(ctx);
+        await repo.saveMemories(contactRowId, memories);
+        storedMemories = memories.length;
+      } catch (err) {
+        console.warn("[sync] memory extraction failed:", (err as Error).message);
+      }
+    }
+  }
+
+  await repo.logAudit("ghl.sync", {
+    contactId,
+    notes: storedNotes,
+    conversations: storedConversations,
+    memories: storedMemories,
+  });
+
+  return {
+    contactId: ctx.ghlContactId,
+    name: ctx.name,
+    stored: { notes: storedNotes, conversations: storedConversations, memories: storedMemories },
+    source: demo ? "demo" : "ghl",
+  };
+}
+
 export async function processInbound(opts: ProcessOptions): Promise<SnapshotResult> {
   const channel = opts.channel ?? "inbox";
   const ctx = await resolveContext(opts);
@@ -92,6 +145,8 @@ export async function processInbound(opts: ProcessOptions): Promise<SnapshotResu
   // Persist for approval (no-ops without a database).
   const contactRowId = await repo.upsertContact(ctx);
   if (contactRowId) {
+    // Store the raw GHL history locally so it lives in our memory, not just GHL's.
+    await repo.persistRawHistory(contactRowId, ctx);
     await repo.saveMemories(contactRowId, memories);
     const snapshotId = await repo.saveSnapshot(contactRowId, snapshot);
     await repo.saveDrafts(contactRowId, snapshotId, opts.inboundMessage, drafts);

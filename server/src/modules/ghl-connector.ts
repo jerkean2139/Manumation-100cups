@@ -113,6 +113,10 @@ export async function pullContactContext(contactId: string): Promise<ContactCont
     }
   }
 
+  console.log(
+    `[ghl] pulled contact ${contactId}: notes=${notes.length} conversations=${conversations.length} fields=${Object.keys(customFields).length}`,
+  );
+
   return {
     ghlContactId: c.id,
     name,

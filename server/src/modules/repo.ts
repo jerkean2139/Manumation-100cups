@@ -106,6 +106,70 @@ export async function saveMemories(
   );
 }
 
+function toDate(value?: string): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
+/**
+ * Store the raw GHL history (notes + conversation messages) locally so it lives
+ * in our database. Idempotent per contact: clears and re-inserts, so re-syncing
+ * never duplicates. Returns how much was stored.
+ */
+export async function persistRawHistory(
+  contactId: string,
+  ctx: ContactContext,
+): Promise<{ notes: number; conversations: number }> {
+  const db = getDb();
+  if (!db) return { notes: 0, conversations: 0 };
+
+  await db.delete(schema.contactNotes).where(eq(schema.contactNotes.contactId, contactId));
+  if (ctx.notes.length) {
+    await db.insert(schema.contactNotes).values(
+      ctx.notes.map((n) => ({
+        contactId,
+        body: n.body,
+        createdAt: toDate(n.createdAt),
+      })),
+    );
+  }
+
+  await db
+    .delete(schema.conversationEvents)
+    .where(eq(schema.conversationEvents.contactId, contactId));
+  if (ctx.conversations.length) {
+    await db.insert(schema.conversationEvents).values(
+      ctx.conversations.map((c) => ({
+        contactId,
+        direction: c.direction,
+        channel: c.channel,
+        body: c.body,
+        occurredAt: toDate(c.createdAt) ?? new Date(),
+      })),
+    );
+  }
+
+  return { notes: ctx.notes.length, conversations: ctx.conversations.length };
+}
+
+/** Read the locally-stored notes + conversation history for a contact. */
+export async function getStoredHistory(contactId: string) {
+  const db = getDb();
+  if (!db) return { notes: [], conversations: [] };
+  const notes = await db
+    .select()
+    .from(schema.contactNotes)
+    .where(eq(schema.contactNotes.contactId, contactId))
+    .orderBy(desc(schema.contactNotes.createdAt));
+  const conversations = await db
+    .select()
+    .from(schema.conversationEvents)
+    .where(eq(schema.conversationEvents.contactId, contactId))
+    .orderBy(desc(schema.conversationEvents.occurredAt));
+  return { notes, conversations };
+}
+
 export async function saveSnapshot(
   contactId: string,
   snapshot: Snapshot,
@@ -191,6 +255,27 @@ export async function getContactWithHistory(contactId: string) {
     .orderBy(desc(schema.messageDrafts.createdAt));
 
   return { contact, memories, snapshots: snaps, drafts };
+}
+
+/** Full locally-stored bundle for a contact, looked up by their GHL id. */
+export async function getContactBundleByGhlId(ghlId: string) {
+  const db = getDb();
+  if (!db) return null;
+  const [contact] = await db
+    .select()
+    .from(schema.contacts)
+    .where(eq(schema.contacts.ghlContactId, ghlId))
+    .limit(1);
+  if (!contact) return null;
+
+  const { notes, conversations } = await getStoredHistory(contact.id);
+  const memories = await db
+    .select()
+    .from(schema.memories)
+    .where(eq(schema.memories.contactId, contact.id))
+    .orderBy(desc(schema.memories.createdAt));
+
+  return { contact, notes, conversations, memories };
 }
 
 export async function setDraftStatus(
