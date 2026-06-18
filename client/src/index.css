@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background-color: theme("colors.canvas");
+  color: theme("colors.ink");
+  font-family: theme("fontFamily.sans");
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The product should feel calm — gentle, never jumpy. */
+* {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 150ms;
+}
