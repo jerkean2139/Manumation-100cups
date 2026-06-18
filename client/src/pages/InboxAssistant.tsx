@@ -164,7 +164,7 @@ export default function InboxAssistant() {
             </span>
             <Button onClick={build} disabled={loading || !message.trim()}>
               <Send className="h-4 w-4" />
-              {loading ? "Thinking…" : "Build Snapshot"}
+              {loading ? "Reading the relationship…" : "Draft Replies"}
             </Button>
           </div>
         </CardSection>

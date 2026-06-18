@@ -26,7 +26,9 @@ const STAGES: RelationshipStage[] = [
   "dormant",
 ];
 
-const score = { type: "number", minimum: 0, maximum: 100 };
+// Structured-output JSON schema doesn't support minimum/maximum on numbers.
+// The 0-100 range is enforced in the prompt and clamped on read.
+const score = { type: "number" };
 
 const schema = {
   type: "object",
@@ -114,11 +116,18 @@ ${memoryBlock}
 
 Build the relationship snapshot.`;
 
-  return structured<Snapshot>({
+  const snapshot = await structured<Snapshot>({
     system: SYSTEM,
     user,
     schema,
     maxTokens: 4000,
     effort: "high",
   });
+
+  // Defensively clamp every score to 0-100 (the schema can't enforce the range).
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  for (const key of Object.keys(snapshot.scores) as (keyof typeof snapshot.scores)[]) {
+    snapshot.scores[key] = clamp(snapshot.scores[key] ?? 0);
+  }
+  return snapshot;
 }

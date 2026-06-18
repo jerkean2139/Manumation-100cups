@@ -10,7 +10,9 @@ import type { DraftReply, HumanityGrade, Snapshot } from "../types.js";
  * then rewrites it once automatically.
  */
 
-const dim = { type: "number", minimum: 0, maximum: 100 };
+// Structured-output JSON schema doesn't support minimum/maximum on numbers.
+// The 0-100 range is enforced in the prompt; weighting handles the rest.
+const dim = { type: "number" };
 
 const schema = {
   type: "object",
