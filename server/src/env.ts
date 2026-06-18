@@ -38,6 +38,15 @@ export const env = {
   humanityThreshold: Number(optional("HUMANITY_THRESHOLD", "95")),
   senderName: optional("SENDER_NAME", "Jeremy Kean"),
 
+  auth: {
+    /** Single-user dashboard password. If unset, the app runs unauthenticated. */
+    password: optional("APP_PASSWORD"),
+    /** Secret used to sign session tokens. Falls back to a derived value. */
+    secret: optional("AUTH_SECRET"),
+    /** Session lifetime in hours. */
+    sessionHours: Number(optional("AUTH_SESSION_HOURS", "168")),
+  },
+
   get isProduction() {
     return this.nodeEnv === "production";
   },
@@ -48,5 +57,8 @@ export const hasAnthropic = () => Boolean(env.anthropic.apiKey);
 
 /** True only when the GHL connector can reach the CRM. */
 export const hasGhl = () => Boolean(env.ghl.apiToken && env.ghl.locationId);
+
+/** True when dashboard auth is enforced (a password is configured). */
+export const authEnabled = () => Boolean(env.auth.password);
 
 export { required };

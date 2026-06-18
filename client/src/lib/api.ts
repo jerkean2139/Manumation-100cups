@@ -7,11 +7,35 @@ import type {
   SnapshotResult,
 } from "./types";
 
+const TOKEN_KEY = "manumation.token";
+
+export const auth = {
+  get: () => localStorage.getItem(TOKEN_KEY) ?? "",
+  set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
+  clear: () => localStorage.removeItem(TOKEN_KEY),
+};
+
+/** Called when any request returns 401 so the app can drop back to login. */
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: () => void) {
+  onUnauthorized = fn;
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = auth.get();
   const res = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
+  if (res.status === 401) {
+    auth.clear();
+    onUnauthorized?.();
+    throw new Error("Your session expired. Please sign in again.");
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error ? JSON.stringify(body.error) : `Request failed (${res.status})`);
@@ -22,12 +46,21 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 export interface HealthInfo {
   status: string;
   engines: { relationshipEngine: string; ghlConnector: string; database: string };
+  auth?: string;
   senderProfile: string;
   humanityThreshold: number;
 }
 
 export const api = {
   health: () => req<HealthInfo>("/health"),
+
+  authStatus: () => req<{ authRequired: boolean }>("/api/auth/status"),
+
+  login: (password: string) =>
+    req<{ ok: boolean; token: string; authRequired: boolean }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
 
   contacts: () => req<{ contacts: ContactSummary[] }>("/api/contacts"),
 

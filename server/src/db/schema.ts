@@ -11,16 +11,40 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * The seven core tables from the technical spec.
+ * The seven core tables from the technical spec, plus a tenant-ready
+ * `locations` table.
+ *
  * Relationship intelligence is stored as structured JSON where it is read
  * as a whole (snapshots, scores), and as rows where it is queried/filtered
  * (memories, events, drafts).
+ *
+ * TENANCY: v1 is functionally single-tenant (one Jeremy, one location), but
+ * every contact is scoped to a `location` keyed by GHL's `locationId`. This is
+ * exactly GHL's structure (Agency → Locations/sub-accounts → Contacts), so
+ * growing into a multi-tenant marketplace app later is additive — add OAuth and
+ * onboarding, not a schema migration.
  */
+
+export const locations = pgTable(
+  "locations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** GHL location (sub-account) id. "default" for the single-tenant v1. */
+    ghlLocationId: text("ghl_location_id").notNull().unique(),
+    name: text("name"),
+    /** Per-location GHL token (used once multi-tenant OAuth lands; null in v1). */
+    ghlAccessToken: text("ghl_access_token"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+);
 
 export const contacts = pgTable(
   "contacts",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    locationId: uuid("location_id").references(() => locations.id, {
+      onDelete: "cascade",
+    }),
     ghlContactId: text("ghl_contact_id").notNull().unique(),
     name: text("name").notNull(),
     email: text("email"),
@@ -35,6 +59,7 @@ export const contacts = pgTable(
   },
   (t) => ({
     ghlIdx: index("contacts_ghl_idx").on(t.ghlContactId),
+    locationIdx: index("contacts_location_idx").on(t.locationId),
   }),
 );
 
@@ -152,6 +177,7 @@ export const conversationEvents = pgTable(
   }),
 );
 
+export type LocationRow = typeof locations.$inferSelect;
 export type ContactRow = typeof contacts.$inferSelect;
 export type MemoryRow = typeof memories.$inferSelect;
 export type SnapshotRow = typeof snapshots.$inferSelect;
