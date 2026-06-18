@@ -3,7 +3,7 @@ import { Inbox as InboxIcon, RefreshCw } from "lucide-react";
 import { api } from "../lib/api";
 import type { PendingReview } from "../lib/types";
 import { Card, CardSection, Button, Badge, Spinner } from "../components/ui";
-import { SnapshotView } from "../components/SnapshotView";
+import { SnapshotSidebar } from "../components/SnapshotSidebar";
 import { DraftCard } from "../components/DraftCard";
 
 export default function Pending() {
@@ -176,21 +176,29 @@ export default function Pending() {
               </CardSection>
             </Card>
 
-            {review.snapshot && <SnapshotView snapshot={review.snapshot} />}
+            <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+              {/* Left: the replies to act on. */}
+              <div className="space-y-4">
+                <h3 className="font-serif text-xl text-ink">Suggested replies</h3>
+                {review.drafts.map((d) => (
+                  <DraftCard
+                    key={`${d.id}-${nonces[`${review.key}:${d.tone}`] ?? 0}`}
+                    draft={d}
+                    threshold={threshold}
+                    busy={busyKey === review.key}
+                    onApprove={(text) => approve(review, d.id, text)}
+                    onRegenerate={() => regenerate(review, d.tone)}
+                    onDelete={() => remove(review, d.id)}
+                  />
+                ))}
+              </div>
 
-            <h3 className="mb-3 mt-6 font-serif text-xl text-ink">Suggested replies</h3>
-            <div className="space-y-4">
-              {review.drafts.map((d) => (
-                <DraftCard
-                  key={`${d.id}-${nonces[`${review.key}:${d.tone}`] ?? 0}`}
-                  draft={d}
-                  threshold={threshold}
-                  busy={busyKey === review.key}
-                  onApprove={(text) => approve(review, d.id, text)}
-                  onRegenerate={() => regenerate(review, d.tone)}
-                  onDelete={() => remove(review, d.id)}
-                />
-              ))}
+              {/* Right: about this person. */}
+              {review.snapshot && (
+                <aside className="self-start lg:sticky lg:top-6">
+                  <SnapshotSidebar snapshot={review.snapshot} />
+                </aside>
+              )}
             </div>
           </section>
         ))}

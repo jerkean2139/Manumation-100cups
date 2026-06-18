@@ -3,7 +3,7 @@ import { Send, BookmarkPlus } from "lucide-react";
 import { api } from "../lib/api";
 import type { Channel, ContactSummary, GradedDraft, SnapshotResult } from "../lib/types";
 import { Card, CardSection, Button, Badge, Spinner } from "../components/ui";
-import { SnapshotView } from "../components/SnapshotView";
+import { SnapshotSidebar } from "../components/SnapshotSidebar";
 import { DraftCard } from "../components/DraftCard";
 
 const CHANNELS: Channel[] = ["inbox", "sms", "email"];
@@ -203,46 +203,46 @@ export default function InboxAssistant() {
       )}
 
       {result && !loading && (
-        <div className="mt-8 space-y-6">
-          <SnapshotView snapshot={result.snapshot} />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
+          {/* Left: the replies — what the user actually acts on, up top. */}
+          <div className="space-y-4">
+            <h2 className="font-serif text-xl text-ink">Suggested replies</h2>
+            {drafts.map((d) => (
+              <DraftCard
+                key={d.tone}
+                draft={d}
+                threshold={threshold}
+                busy={busy}
+                onApprove={approve}
+                onRegenerate={() => regenerate(d.tone)}
+                onDelete={() => setDrafts((prev) => prev.filter((x) => x.tone !== d.tone))}
+              />
+            ))}
 
-          {result.memories.length > 0 && (
-            <Card>
-              <CardSection title="Memories in play">
-                <div className="flex flex-wrap gap-2">
-                  {result.memories.map((m, i) => (
-                    <Badge key={i} className="bg-canvas border border-sand">
-                      <span className="text-clay mr-1">{m.type}</span> {m.content}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="mt-3">
-                  <Button variant="outline" onClick={saveMemory} disabled={busy}>
-                    <BookmarkPlus className="h-4 w-4" /> Save top memory
-                  </Button>
-                </div>
-              </CardSection>
-            </Card>
-          )}
-
-          <div>
-            <h2 className="mb-3 font-serif text-xl text-ink">Suggested replies</h2>
-            <div className="space-y-4">
-              {drafts.map((d) => (
-                <DraftCard
-                  key={d.tone}
-                  draft={d}
-                  threshold={threshold}
-                  busy={busy}
-                  onApprove={approve}
-                  onRegenerate={() => regenerate(d.tone)}
-                  onDelete={() =>
-                    setDrafts((prev) => prev.filter((x) => x.tone !== d.tone))
-                  }
-                />
-              ))}
-            </div>
+            {result.memories.length > 0 && (
+              <Card>
+                <CardSection title="Memories in play">
+                  <div className="flex flex-wrap gap-2">
+                    {result.memories.map((m, i) => (
+                      <Badge key={i} className="bg-canvas border border-sand">
+                        <span className="text-clay mr-1">{m.type}</span> {m.content}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="mt-3">
+                    <Button variant="outline" onClick={saveMemory} disabled={busy}>
+                      <BookmarkPlus className="h-4 w-4" /> Save top memory
+                    </Button>
+                  </div>
+                </CardSection>
+              </Card>
+            )}
           </div>
+
+          {/* Right: everything about the person, as a sticky sidebar. */}
+          <aside className="self-start lg:sticky lg:top-6">
+            <SnapshotSidebar snapshot={result.snapshot} />
+          </aside>
         </div>
       )}
 

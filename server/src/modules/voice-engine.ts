@@ -22,6 +22,20 @@ const schema = {
   required: ["warm", "direct"],
 };
 
+/**
+ * Hard guarantee that no em/en dash ever leaves the system in an outbound
+ * message, even if the model slips. Replaces the dash (and any surrounding
+ * spaces) with a comma, then tidies the result.
+ */
+export function stripDashes(text: string): string {
+  return text
+    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/\s+([,.;!?])/g, "$1")
+    .replace(/,\s*,/g, ",")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function channelGuidance(channel: Channel): string {
   switch (channel) {
     case "sms":
@@ -84,8 +98,8 @@ Write the two replies.`;
   });
 
   return [
-    { tone: "warm", channel, text: result.warm.trim() },
-    { tone: "direct", channel, text: result.direct.trim() },
+    { tone: "warm", channel, text: stripDashes(result.warm) },
+    { tone: "direct", channel, text: stripDashes(result.direct) },
   ];
 }
 
@@ -133,5 +147,5 @@ tone and sounding like Jeremy.`;
     effort: "high",
   });
 
-  return result.text.trim();
+  return stripDashes(result.text);
 }
