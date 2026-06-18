@@ -21,7 +21,7 @@ export const DEMO_CONTACTS: Record<string, ContactContext> = {
     },
     notes: [
       {
-        body: "Sarah is opening a second Bright Path location in Westfield in the spring. Nervous about hiring the right front-desk lead — got burned last time.",
+        body: "Sarah is opening a second Bright Path location in Westfield in the spring. Nervous about hiring the right front-desk lead. Got burned last time.",
         createdAt: "2026-05-02",
       },
       {
@@ -29,7 +29,7 @@ export const DEMO_CONTACTS: Record<string, ContactContext> = {
         createdAt: "2026-04-18",
       },
       {
-        body: "Mentioned she's been reading more lately to wind down — finished a Brené Brown book she loved.",
+        body: "Mentioned she's been reading more lately to wind down. Finished a Brené Brown book she loved.",
         createdAt: "2026-03-30",
       },
     ],
@@ -37,7 +37,7 @@ export const DEMO_CONTACTS: Record<string, ContactContext> = {
       {
         direction: "outbound",
         channel: "sms",
-        body: "Sarah! Congrats again on the summit talk — the bit about treating patients like neighbors stuck with me.",
+        body: "Sarah! Congrats again on the summit talk. The bit about treating patients like neighbors stuck with me.",
         createdAt: "2026-04-10",
       },
       {
@@ -49,7 +49,7 @@ export const DEMO_CONTACTS: Record<string, ContactContext> = {
       {
         direction: "inbound",
         channel: "sms",
-        body: "Hey Jeremy — quick one. We signed the lease on the Westfield space today!! Terrified and excited.",
+        body: "Hey Jeremy, quick one. We signed the lease on the Westfield space today!! Terrified and excited.",
         createdAt: "2026-06-17",
       },
     ],
@@ -74,7 +74,7 @@ export const DEMO_CONTACTS: Record<string, ContactContext> = {
       {
         direction: "outbound",
         channel: "email",
-        body: "Marcus, thinking of you this week. No agenda — just wanted you to know.",
+        body: "Marcus, thinking of you this week. No agenda, just wanted you to know.",
         createdAt: "2026-02-20",
       },
       {

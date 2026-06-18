@@ -66,7 +66,7 @@ export default function InboxAssistant() {
     setBusy(true);
     try {
       const r = await api.approve({ contactId, text, channel });
-      notify(r.sent ? "Sent through GHL." : "Approved (GHL not connected — not sent).");
+      notify(r.sent ? "Sent through GHL." : "Approved (GHL not connected, not sent).");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -109,7 +109,7 @@ export default function InboxAssistant() {
       <header className="mb-8">
         <h1 className="font-serif text-3xl text-ink">Inbox Assistant</h1>
         <p className="mt-1 text-muted">
-          A message came in. Here's what matters about this person — and how to reply
+          A message came in. Here's what matters about this person, and how to reply
           like you remembered.
         </p>
       </header>
@@ -193,9 +193,9 @@ export default function InboxAssistant() {
           <CardSection>
             <Spinner label={`Reading the relationship…  ${elapsed}s`} />
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              This runs several steps — extracting memories, building the snapshot,
+              This runs several steps: extracting memories, building the snapshot,
               drafting two replies, and auditing each for humanity. It usually takes
-              30–60 seconds. You can leave this page; finished replies always land in{" "}
+              30 to 60 seconds. You can leave this page; finished replies always land in{" "}
               <span className="font-medium text-ink">Pending Replies</span>.
             </p>
           </CardSection>
@@ -204,13 +204,19 @@ export default function InboxAssistant() {
 
       {result && !loading && (
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
-          {/* Left: the replies — what the user actually acts on, up top. */}
+          {/* Left: the replies, what the user actually acts on, up top. */}
           <div className="space-y-4">
-            <h2 className="font-serif text-xl text-ink">Suggested replies</h2>
-            {drafts.map((d) => (
+            <div>
+              <h2 className="font-serif text-xl text-ink">Suggested replies</h2>
+              <p className="mt-0.5 text-sm text-muted">
+                Two ways to say it. Pick one, edit if you want, then approve to send it.
+              </p>
+            </div>
+            {drafts.map((d, i) => (
               <DraftCard
                 key={d.tone}
                 draft={d}
+                index={i + 1}
                 threshold={threshold}
                 busy={busy}
                 onApprove={approve}

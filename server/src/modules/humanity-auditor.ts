@@ -83,7 +83,7 @@ export async function auditReply(
   draft: DraftReply,
   snapshot: Snapshot,
 ): Promise<HumanityGrade> {
-  const user = `Relationship context — why they matter: ${snapshot.whyTheyMatter}
+  const user = `Relationship context, why they matter: ${snapshot.whyTheyMatter}
 Current season: ${snapshot.currentSeason}
 Avoid saying: ${snapshot.avoidSaying.join("; ") || "(nothing flagged)"}
 

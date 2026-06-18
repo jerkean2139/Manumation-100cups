@@ -39,9 +39,9 @@ export default function Dashboard() {
           <CardSection title="System">
             {health ? (
               <div className="space-y-2">
-                <StatusDot value={`Relationship Engine — ${health.engines.relationshipEngine}`} />
-                <StatusDot value={`GHL Connector — ${health.engines.ghlConnector}`} />
-                <StatusDot value={`Database — ${health.engines.database}`} />
+                <StatusDot value={`Relationship Engine: ${health.engines.relationshipEngine}`} />
+                <StatusDot value={`GHL Connector: ${health.engines.ghlConnector}`} />
+                <StatusDot value={`Database: ${health.engines.database}`} />
                 <div className="pt-2 text-sm text-muted">
                   Sender profile: <span className="text-ink">{health.senderProfile}</span> ·
                   Humanity threshold:{" "}
@@ -61,7 +61,7 @@ export default function Dashboard() {
             </p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
               Not last activity. Not open rate. Not pipeline stage. The single most
-              meaningful conversation you could have next — surfaced for every person
+              meaningful conversation you could have next, surfaced for every person
               who reaches out.
             </p>
           </CardSection>

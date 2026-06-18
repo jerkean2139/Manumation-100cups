@@ -77,21 +77,43 @@ export function Badge({ children, className }: { children: ReactNode; className?
   );
 }
 
-/** A single relationship score as a quiet labeled meter. */
+/** A small hover/tap tooltip. Zero-dependency, works on desktop and touch (focus). */
+export function InfoTip({ text }: { text: string }) {
+  return (
+    <span className="group relative ml-1 inline-flex align-middle">
+      <span
+        tabIndex={0}
+        role="img"
+        aria-label={text}
+        className="flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-muted/50 text-[9px] font-bold leading-none text-muted"
+      >
+        i
+      </span>
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden w-52 -translate-x-1/2 rounded-lg bg-ink px-3 py-2 text-xs font-normal leading-snug text-canvas shadow-soft group-hover:block group-focus-within:block">
+        {text}
+      </span>
+    </span>
+  );
+}
+
+/** A single relationship score as a quiet labeled meter, with an optional tooltip. */
 export function ScoreMeter({
   label,
   value,
   hero,
+  help,
 }: {
   label: string;
   value: number;
   hero?: boolean;
+  help?: string;
 }) {
   return (
     <div className={cn(hero && "rounded-xl bg-canvas p-3")}>
       <div className="flex items-baseline justify-between">
         <span className={cn("text-sm", hero ? "font-semibold text-ink" : "text-muted")}>
           {label}
+          {help && <InfoTip text={help} />}
         </span>
         <span className={cn("text-sm font-semibold tabular-nums", scoreTone(value))}>
           {value}
