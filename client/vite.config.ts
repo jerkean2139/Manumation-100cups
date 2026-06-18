@@ -1,0 +1,18 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+// In dev, proxy API/webhook/health calls to the Express server on :8080.
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    proxy: {
+      "/api": "http://localhost:8080",
+      "/webhooks": "http://localhost:8080",
+      "/health": "http://localhost:8080",
+    },
+  },
+  build: {
+    outDir: "dist",
+  },
+});
